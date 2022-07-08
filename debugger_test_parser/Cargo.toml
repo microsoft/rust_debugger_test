@@ -1,0 +1,15 @@
+[package]
+name = "debugger_test_parser"
+version = "0.1.0"
+edition = "2021"
+description = """
+Provides a library for parsing the output of a debugger and verifying the contents.
+"""
+keywords = ["debugger", "cdb", "natvis", "debugger_visualizer"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/microsoft/rust_debugger_test"
+
+[dependencies]
+anyhow = "1.0.58"
+log = "0.4.17"
+regex = "1.6.0"
