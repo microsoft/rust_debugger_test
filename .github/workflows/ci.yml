@@ -33,8 +33,11 @@ jobs:
     - name: Build docs
       run: cargo doc --verbose
 
+# Be sure the debugger tests DO NOT run in parallel.
+# Each test attaches a debugger to the test process so there
+# can not be another debugger attached to the current test process.
     - name: Run full test suite
-      run: cargo test --tests
+      run: cargo test --tests -- --test-threads=1
 
   rustfmt:
     name: rustfmt

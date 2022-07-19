@@ -5,6 +5,8 @@ enum OutputParsingStyle {
     PatternMatch(Regex),
 }
 
+const PATTERN_PREFIX: &str = "pattern:";
+
 /// Parse the output of a debugger and verify that the expected contents
 /// are found. If content was expected in the debugger output that is not
 /// found, stop and return an error.
@@ -76,9 +78,9 @@ fn format_error_message(parsing_style: &OutputParsingStyle) -> String {
 
 /// Get the parsing style for the given expected statement.
 fn get_output_parsing_style(expected_output: &str) -> anyhow::Result<OutputParsingStyle> {
-    let parsing_style = if expected_output.starts_with("pattern:") {
+    let parsing_style = if expected_output.starts_with(PATTERN_PREFIX) {
         let re_pattern = expected_output
-            .strip_prefix("pattern:")
+            .strip_prefix(PATTERN_PREFIX)
             .expect("string starts with `pattern:`");
         let re = match Regex::new(re_pattern) {
             Ok(re) => re,

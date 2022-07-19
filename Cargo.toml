@@ -1,2 +1,17 @@
-[workspace]
-members = ["debugger_test_parser"]
+[package]
+name = "debugger_test"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+proc-macro = true
+
+[dependencies]
+anyhow = "1.0.40"
+debugger_test_parser = { path = "debugger_test_parser" }
+log = "0.4.17"
+quote = "1.0.20"
+regex = "1.6.0"
+strum = { version = "0.24", features = ["derive"] }
+syn = { version = "1.0", features = ["full"] }
