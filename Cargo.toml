@@ -2,8 +2,17 @@
 name = "debugger_test"
 version = "0.1.0"
 edition = "2021"
+description = """
+Provides a proc macro for writing tests that launch a debugger and run commands while verifying the output.
+"""
+documentation = "https://docs.rs/debugger_test"
+readme = "README.md"
+homepage = "https://github.com/microsoft/rust_debugger_test"
+repository = "https://github.com/microsoft/rust_debugger_test"
+license = "MIT OR Apache-2.0"
+keywords = ["debugger", "cdb", "natvis", "debugger_visualizer"]
+exclude = ["/.github/*"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
 proc-macro = true
 
@@ -12,6 +21,8 @@ anyhow = "1.0.40"
 debugger_test_parser = { path = "debugger_test_parser" }
 log = "0.4.17"
 quote = "1.0.20"
-regex = "1.6.0"
 strum = { version = "0.24", features = ["derive"] }
 syn = { version = "1.0", features = ["full"] }
+
+[dev-dependencies]
+regex = "1.6.0"

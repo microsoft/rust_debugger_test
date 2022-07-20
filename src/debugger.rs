@@ -5,7 +5,6 @@ use std::io;
 use std::path::PathBuf;
 use std::process::Command;
 use std::str::FromStr;
-use regex::Regex;
 use strum::{EnumIter, IntoEnumIterator};
 
 #[cfg(windows)]
@@ -165,7 +164,7 @@ pub fn test_get_debugger() {
     assert!(result.is_ok());
 
     let debugger = result.unwrap();
-    let re = Regex::new("^cdb: .*cdb.exe$").unwrap();
+    let re = regex::Regex::new("^cdb: .*cdb.exe$").unwrap();
     assert!(re.is_match(format!("{}", debugger).as_str()));
 }
 

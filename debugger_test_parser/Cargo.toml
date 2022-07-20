@@ -5,9 +5,12 @@ edition = "2021"
 description = """
 Provides a library for parsing the output of a debugger and verifying the contents.
 """
-keywords = ["debugger", "cdb", "natvis", "debugger_visualizer"]
+documentation = "https://docs.rs/debugger_test_parser"
+readme = "README.md"
+homepage = "https://github.com/microsoft/rust_debugger_test/debugger_test_parser"
+repository = "https://github.com/microsoft/rust_debugger_test/debugger_test_parser"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/microsoft/rust_debugger_test"
+keywords = ["debugger", "cdb", "natvis", "debugger_visualizer"]
 
 [dependencies]
 anyhow = "1.0.58"

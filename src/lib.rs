@@ -159,16 +159,16 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
             let mut child = #debugger_command_line;
 
             // Wait for the debugger to attach
-            std::thread::sleep(std::time::Duration::from_secs(2));
+            std::thread::sleep(std::time::Duration::from_secs(5));
 
             // Call the test function.
             #fn_ident();
-
 
             // Wait for the debugger to exit.
             let mut debugger_stdout = String::new();
             loop {
                 std::thread::sleep(std::time::Duration::from_secs(2));
+
                 match child.try_wait().unwrap() {
                     Some(status) => {
                         let mut stdout_buf = Vec::new();
@@ -195,7 +195,7 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
                             return std::process::ExitCode::from(10);
                         }
                         break;
-                    }
+                    },
                     None => {
                         // Ensure the debugger is quitting.
                         write!(child.stdin.as_ref().unwrap(), "{}", "qd\n").unwrap();
