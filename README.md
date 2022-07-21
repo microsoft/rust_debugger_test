@@ -1,14 +1,110 @@
-# Project
+# debugger_test
 
-> This repo has been populated by an initial template to help get you started. Please
-> make sure to update the content to build a great experience for community-building.
+Provides an easy way of integrating debugger specific tests into a crate.
 
-As the maintainer of this project, please make a few updates:
+This crate is responsible for generating the `#[debugger_test]` proc macro attribute.
 
-- Improving this README.MD file to provide a great experience
-- Updating SUPPORT.MD with content about this project's support experience
-- Understanding the security reporting process in SECURITY.MD
-- Remove this section from the README
+## Usage
+
+To use, add this crate and the `debugger_test_parser` as a dependency in your `Cargo.toml`.
+
+This crate uses the `debugger_test_parser` to parse the output of the specified debugger
+and verify all expected statements were found.
+
+In order to set breakpoints, an `__break()` function will need to be defined and called
+at each place the debugger should stop.
+
+For example:
+
+```rust
+#[inline(never)]
+pub fn __break() { }
+
+#[debugger_test(
+    debugger = "cdb",
+    commands = r#"
+.nvlist
+dv
+g"#,
+    expected_statements = r#"
+pattern:test\.exe .*\.natvis
+a = 0n10
+    "#)]
+pub fn test() {
+    let a = 10;
+    __break();
+}
+```
+
+The `#[debugger_test]` proc macro attribute has 3 required meta items which all take a string value:
+
+1. debugger
+2. commands
+3. expected_statements
+
+The `debugger` meta item expects the name of a supported debugger. Currently the only supported debugger is `cdb`.
+
+The `commands` meta item expects a string of a debugger command to run. To run multiple commands, separate each
+command by the new line character (`\n`).
+
+The `expected_statements` meta item expects a string of output to verify in the debugger output.
+Each statement should be separated by a new line character (`\n`).
+
+For example:
+
+```rust
+#[debugger_test(
+    debugger = "cdb",
+    commands = "command1\ncommand2\ncommand3",
+    expected_statements = "statement1\nstatement2\nstatement3")]
+```
+
+Using a multiline string is also supported:
+
+```rust
+#[debugger_test(
+    debugger = "cdb",
+    commands = r#"
+command1
+command2
+command3"#,
+    expected_statements = r#"
+statement1
+statement2
+statement3"#)]
+```
+
+Pattern matching is also supported for a given `expected_statement`. Use the prefix, `pattern:` for the
+expected statement. This is useful for ignoring debugger output that contain memory address and/or paths:
+
+```rust
+#[debugger_test(
+    debugger = "cdb",
+    commands = "command3",
+    expected_statements = "pattern:abc.*")]
+```
+
+The `#[debugger_test]` proc macro attribute will generate a new test function that will be marked
+with the `#[test]` attribute. This generated test function will add a suffix to the test name to ensure
+the test is unique. In the example above, the proc macro attribute will generate the following function:
+
+```rust
+#[test]
+pub fn test__cdb() {
+    .....
+    test();
+    .....
+}
+```
+
+The proc macro attribute will generate a test function that will do the following:
+
+1. Launch the specified debugger
+2. Attach the debugger to the current test executable process
+3. Set breakpoints at all call sites of the `__break()` function
+4. Run the debugger to the first breakpoint specified by the debugger
+5. Run all of the user specified commands and exit the debugger
+6. Parse the debugger output using the `debugger_test_parser` crate and verify all the `expected_statements` were found
 
 ## Contributing
 
