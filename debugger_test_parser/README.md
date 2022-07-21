@@ -4,9 +4,6 @@ This crate provides a way of parsing the output of a debugger and verifying any 
 
 To use, add this crate as dependency in your `Cargo.toml`.
 
-## Usage
-
-
 ## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a

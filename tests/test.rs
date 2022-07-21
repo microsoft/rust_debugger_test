@@ -32,8 +32,7 @@ a = 0n0
 a = 0n5
 b = 0n25
 a = 0n5
-b = 0n10
-"#
+b = 0n10"#
 )]
 pub fn test_commands_with_expectations() {
     let mut a = 0;

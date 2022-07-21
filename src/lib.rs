@@ -101,7 +101,7 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let fn_name = func.sig.ident.to_string();
     let fn_ident = format_ident!("{}", fn_name);
-    let test_fn_name = format!("{}_{}", fn_name, debugger_type.to_string());
+    let test_fn_name = format!("{}__{}", fn_name, debugger_type.to_string());
     let test_fn_ident = format_ident!("{}", test_fn_name);
 
     let debugger_script_contents = create_debugger_script(&fn_name, debugger_commands);

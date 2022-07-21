@@ -163,7 +163,7 @@ pub fn test_err_expected_pattern_not_found() {
 
     let expected_contents = vec![
         "point_a          : (0, 0) [Type: foo::Point]",
-        r#"pattern:a.exe \(embedded NatVis ".*foo\.natvis"\)"#,
+        r#"pattern:a\.exe \(embedded NatVis ".*foo\.natvis"\)"#,
     ];
 
     let expected_err_msg = "Unable to find expected content in the debugger output. Found 0 matches for pattern: `a.exe \\(embedded NatVis \".*foo\\.natvis\"\\)`";
