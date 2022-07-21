@@ -18,7 +18,7 @@ proc-macro = true
 
 [dependencies]
 anyhow = "1.0.40"
-debugger_test_parser = { path = "debugger_test_parser" }
+debugger_test_parser = "0.1.0"
 log = "0.4.17"
 quote = "1.0.20"
 strum = { version = "0.24", features = ["derive"] }
