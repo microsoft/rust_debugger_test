@@ -106,6 +106,7 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let debugger_script_contents = create_debugger_script(&fn_name, debugger_commands);
 
+    // Trim all whitespace and remove any empty lines.
     let expected_statements = &invoc
         .expected_statements
         .trim()
@@ -126,8 +127,7 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
                     .arg(pid.to_string())
                     .arg("-cf")
                     .arg(&debugger_script_path)
-                    .spawn()
-                    .unwrap();
+                    .spawn()?;
             );
 
             // cdb is only supported on Windows.
@@ -139,21 +139,22 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     };
 
+    // Create the test function that will launch the debugger and run debugger commands.
     let mut debugger_test_fn = proc_macro::TokenStream::from(quote!(
         #[test]
         #cfg_attr
-        pub fn #test_fn_ident() -> std::process::ExitCode {
+        pub fn #test_fn_ident() -> std::result::Result<(), Box<dyn std::error::Error>> {
             use std::io::Read;
             use std::io::Write;
 
             let pid = std::process::id();
-            let current_exe_filename = std::env::current_exe().unwrap().file_stem().unwrap().to_string_lossy().to_string();
+            let current_exe_filename = std::env::current_exe()?.file_stem().expect("must have a valid file name").to_string_lossy().to_string();
             let debugger_script_filename = format!("{}_{}.debugger_script", current_exe_filename, #test_fn_name);
             let debugger_script_path = std::env::temp_dir().join(debugger_script_filename);
 
             // Write the contents of the debugger script to a new file.
-            let mut debugger_script = std::fs::File::create(&debugger_script_path).expect("must be able to create the debugger script file");
-            writeln!(debugger_script, #debugger_script_contents).expect("must be able to write to the debugger script file");
+            let mut debugger_script = std::fs::File::create(&debugger_script_path)?;
+            writeln!(debugger_script, #debugger_script_contents)?;
 
             // Start the debugger and run the debugger commands.
             let mut child = #debugger_command_line;
@@ -169,16 +170,16 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
             loop {
                 std::thread::sleep(std::time::Duration::from_secs(2));
 
-                match child.try_wait().unwrap() {
+                match child.try_wait()? {
                     Some(status) => {
                         let mut stdout_buf = Vec::new();
                         child
                             .stdout
                             .take()
                             .expect("stdout must be available from the current process")
-                            .read_to_end(&mut stdout_buf)
-                            .expect("must be able to read stdout for the current process");
+                            .read_to_end(&mut stdout_buf)?;
                         debugger_stdout = String::from_utf8_lossy(stdout_buf.as_slice()).to_string();
+                        println!("Debugger stdout:\n{}\n", debugger_stdout);
 
                         // Bail early if the debugger process didn't execute successfully.
                         if !status.success() {
@@ -187,33 +188,23 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
                                 .stderr
                                 .take()
                                 .expect("stderr must be available from the current process")
-                                .read_to_end(&mut stderr_buf)
-                                .expect("must be able to read stderr for the current process");
+                                .read_to_end(&mut stderr_buf)?;
                             let debugger_stderr = String::from_utf8_lossy(stderr_buf.as_slice()).to_string();
-
-                            println!("Debugger failed with {}.\n{}\n{}\n", status, debugger_stdout, debugger_stderr);
-                            return std::process::ExitCode::from(10);
+                            panic!("Debugger failed with {}.\n{}\n", status, debugger_stderr);
                         }
                         break;
                     },
                     None => {
                         // Ensure the debugger is quitting.
-                        write!(child.stdin.as_ref().unwrap(), "{}", "qd\n").unwrap();
+                        writeln!(child.stdin.as_ref().unwrap(), "{}", "qd\n")?;
                     }
                 }
             }
 
             // Verify the expected contents of the debugger output.
             let expected_statements = vec![#(#expected_statements),*];
-            match debugger_test_parser::parse(debugger_stdout.clone(), expected_statements) {
-                Err(error) => {
-                    // Verifying the debugger output failed.
-                    println!("Verifying debugger output failed: {}\n{}\n", error, debugger_stdout);
-                    return std::process::ExitCode::from(20);
-                },
-                _ => { }
-            }
-            return std::process::ExitCode::SUCCESS;
+            debugger_test_parser::parse(debugger_stdout.clone(), expected_statements)?;
+            Ok(())
         }
     ));
 

@@ -1,6 +1,6 @@
 [package]
 name = "debugger_test"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = """
 Provides a proc macro for writing tests that launch a debugger and run commands while verifying the output.
@@ -18,11 +18,11 @@ proc-macro = true
 
 [dependencies]
 anyhow = "1.0.40"
-debugger_test_parser = "0.1.0"
 log = "0.4.17"
 quote = "1.0.20"
 strum = { version = "0.24", features = ["derive"] }
 syn = { version = "1.0", features = ["full"] }
 
 [dev-dependencies]
+debugger_test_parser = "0.1.0"
 regex = "1.6.0"
