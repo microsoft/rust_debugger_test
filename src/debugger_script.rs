@@ -27,7 +27,7 @@ pub fn create_debugger_script(fn_name: &String, debugger_commands: &Vec<&str>) -
 }
 
 #[test]
-pub fn test_debugger_script_empty() {
+fn test_debugger_script_empty() {
     let test_name = String::from("test1");
     let debugger_commands = vec![];
     let debugger_script = create_debugger_script(&test_name, &debugger_commands);
@@ -43,7 +43,7 @@ qd
 }
 
 #[test]
-pub fn test_debugger_script() {
+fn test_debugger_script() {
     let test_name = String::from("test1");
     let debugger_commands = vec!["dv", "g", ".nvlist"];
     let debugger_script = create_debugger_script(&test_name, &debugger_commands);

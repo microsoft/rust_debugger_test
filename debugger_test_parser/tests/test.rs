@@ -1,7 +1,7 @@
 use debugger_test_parser::parse;
 
 /// Verify that a test failed with a specific error message.
-pub fn verify_expected_failure(result: anyhow::Result<()>, expected_err_msg: &str) {
+fn verify_expected_failure(result: anyhow::Result<()>, expected_err_msg: &str) {
     let error = result
         .expect_err(format!("Expected error message missing: `{}`.", expected_err_msg).as_str());
     assert_eq!(expected_err_msg, format!("{error}"));
@@ -9,7 +9,7 @@ pub fn verify_expected_failure(result: anyhow::Result<()>, expected_err_msg: &st
 
 /// Test parsing empty debugger output.
 #[test]
-pub fn test_parse_empty_output() {
+fn test_parse_empty_output() {
     let output = String::from("");
     let expected_contents = Vec::with_capacity(0);
     parse(output, expected_contents).expect("able to parse output.");
@@ -18,7 +18,7 @@ pub fn test_parse_empty_output() {
 /// Test parsing debugger output for a single command.
 /// No expected content.
 #[test]
-pub fn test_parse_output_command() {
+fn test_parse_output_command() {
     let output = String::from(
         r#"
     dv
@@ -35,7 +35,7 @@ pub fn test_parse_output_command() {
 /// Test parsing a single debugger output.
 /// Verify expected content.
 #[test]
-pub fn test_verify_output_command() {
+fn test_verify_output_command() {
     let output = String::from(
         r#"
     dv
@@ -49,10 +49,27 @@ pub fn test_verify_output_command() {
     parse(output, expected_contents).expect("able to parse output.");
 }
 
+#[test]
+fn test_trim_expected_contents() {
+    let output = String::from(
+        r#"
+    dv
+        var1 = 0
+        var2 = { len = 3 }
+        var3 = { struct }
+    "#,
+    );
+
+    let expected_contents = vec![
+        "        var1 = 0"
+    ];
+    parse(output, expected_contents).expect("able to parse output.");
+}
+
 /// Test parsing debugger output for mutliple commands.
 /// Verify expected content.
 #[test]
-pub fn test_verify_output_multiple_commands() {
+fn test_verify_output_multiple_commands() {
     let output = String::from(
         r#"
     .nvlist
@@ -81,7 +98,7 @@ pub fn test_verify_output_multiple_commands() {
     );
 
     let expected_contents = vec![
-        r#"pattern:a.exe \(embedded NatVis ".*foo\.natvis"\)"#,
+        r#"pattern:a\.exe \(embedded NatVis ".*foo\.natvis"\)"#,
         "point_a          : (0, 0) [Type: foo::Point]",
         "[x]              : 0 [Type: int]",
         "person           : \"Person A\" is 10 years old. [Type: foo::Person]",
@@ -93,7 +110,7 @@ pub fn test_verify_output_multiple_commands() {
 /// Test expected content not found in debugger output due to incorrect ordering.
 /// Parsing fails.
 #[test]
-pub fn test_err_expected_string_not_found() {
+fn test_err_expected_string_not_found() {
     let output = String::from(
         r#"
     .nvlist
@@ -133,7 +150,7 @@ pub fn test_err_expected_string_not_found() {
 /// Test expected pattern not found in debugger output due to incorrect ordering.
 /// Parsing fails.
 #[test]
-pub fn test_err_expected_pattern_not_found() {
+fn test_err_expected_pattern_not_found() {
     let output = String::from(
         r#"
     .nvlist
@@ -166,14 +183,14 @@ pub fn test_err_expected_pattern_not_found() {
         r#"pattern:a\.exe \(embedded NatVis ".*foo\.natvis"\)"#,
     ];
 
-    let expected_err_msg = "Unable to find expected content in the debugger output. Found 0 matches for pattern: `a.exe \\(embedded NatVis \".*foo\\.natvis\"\\)`";
+    let expected_err_msg = "Unable to find expected content in the debugger output. Found 0 matches for pattern: `a\\.exe \\(embedded NatVis \".*foo\\.natvis\"\\)`";
     verify_expected_failure(parse(output, expected_contents), expected_err_msg);
 }
 
 /// Test expected pattern is not a valid regex.
 /// Parsing fails.
 #[test]
-pub fn test_err_expected_pattern_not_valid() {
+fn test_err_expected_pattern_not_valid() {
     let output = String::from(
         r#"
     .nvlist

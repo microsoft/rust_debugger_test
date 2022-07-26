@@ -143,7 +143,7 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
     let mut debugger_test_fn = proc_macro::TokenStream::from(quote!(
         #[test]
         #cfg_attr
-        pub fn #test_fn_ident() -> std::result::Result<(), Box<dyn std::error::Error>> {
+        fn #test_fn_ident() -> std::result::Result<(), Box<dyn std::error::Error>> {
             use std::io::Read;
             use std::io::Write;
 

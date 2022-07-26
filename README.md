@@ -18,7 +18,7 @@ For example:
 
 ```rust
 #[inline(never)]
-pub fn __break() { }
+fn __break() { }
 
 #[debugger_test(
     debugger = "cdb",
@@ -30,7 +30,7 @@ g"#,
 pattern:test\.exe .*\.natvis
 a = 0n10
     "#)]
-pub fn test() {
+fn test() {
     let a = 10;
     __break();
 }
@@ -43,6 +43,9 @@ The `#[debugger_test]` proc macro attribute has 3 required meta items which all 
 3. expected_statements
 
 The `debugger` meta item expects the name of a supported debugger. Currently the only supported debugger is `cdb`.
+This crate will try to find the specified debugger, first by testing if it is on the `PATH`. If the debugger is
+not found, this crate will search the default installation directory for the debugger. Specifying an exact path
+for which debugger to use is not currently supported.
 
 The `commands` meta item expects a string of a debugger command to run. To run multiple commands, separate each
 command by the new line character (`\n`).
@@ -90,7 +93,7 @@ the test is unique. In the example above, the proc macro attribute will generate
 
 ```rust
 #[test]
-pub fn test__cdb() {
+fn test__cdb() {
     .....
     test();
     .....
