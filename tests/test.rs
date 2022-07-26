@@ -1,15 +1,15 @@
 use debugger_test::debugger_test;
 
 #[inline(never)]
-pub fn __break() {}
+fn __break() {}
 
 #[debugger_test(debugger = "cdb", commands = "", expected_statements = "")]
-pub fn test_empty_commands() {
+fn test_empty_commands() {
     __break();
 }
 
 #[debugger_test(debugger = "cdb", commands = ".nvlist", expected_statements = "")]
-pub fn test_no_expectations() {
+fn test_no_expectations() {
     __break();
 }
 
@@ -34,7 +34,7 @@ b = 0n25
 a = 0n5
 b = 0n10"#
 )]
-pub fn test_commands_with_expectations() {
+fn test_commands_with_expectations() {
     let mut a = 0;
     __break();
 

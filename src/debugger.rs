@@ -140,7 +140,7 @@ pub fn get_debugger(debugger_type: &DebuggerType) -> anyhow::Result<Debugger> {
     not(target_os = "windows"),
     ignore = "test only runs on windows platforms."
 )]
-pub fn test_find_cdb() {
+fn test_find_cdb() {
     let result = find_cdb();
     assert!(result.is_ok());
 
@@ -157,7 +157,7 @@ pub fn test_find_cdb() {
     not(target_os = "windows"),
     ignore = "test only runs on windows platforms."
 )]
-pub fn test_get_debugger() {
+fn test_get_debugger() {
     let debugger_type = DebuggerType::Cdb;
 
     let result = get_debugger(&debugger_type);
@@ -169,7 +169,7 @@ pub fn test_get_debugger() {
 }
 
 #[test]
-pub fn test_debugger_type_from_str() {
+fn test_debugger_type_from_str() {
     assert!(DebuggerType::from_str("cdb").is_ok());
 
     let gdb_debugger_type = DebuggerType::from_str("gdb");

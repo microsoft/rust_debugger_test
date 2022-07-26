@@ -23,6 +23,20 @@ pub fn parse(debugger_output: String, expected_contents: Vec<&str>) -> anyhow::R
         .lines()
         .map(|line| line.trim())
         .collect::<Vec<&str>>();
+
+    // Trim whitespace at the beginning and end of expected contents.
+    let expected_contents = expected_contents
+        .iter()
+        .filter_map(|line| {
+            let str = line.trim();
+            match str.is_empty() {
+                false => Some(str),
+                true => None,
+            }
+        })
+        .map(|line| line.trim())
+        .collect::<Vec<&str>>();
+
     let mut index = 0;
 
     for expected in expected_contents {

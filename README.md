@@ -18,7 +18,7 @@ For example:
 
 ```rust
 #[inline(never)]
-pub fn __break() { }
+fn __break() { }
 
 #[debugger_test(
     debugger = "cdb",
@@ -30,7 +30,7 @@ g"#,
 pattern:test\.exe .*\.natvis
 a = 0n10
     "#)]
-pub fn test() {
+fn test() {
     let a = 10;
     __break();
 }
@@ -93,7 +93,7 @@ the test is unique. In the example above, the proc macro attribute will generate
 
 ```rust
 #[test]
-pub fn test__cdb() {
+fn test__cdb() {
     .....
     test();
     .....
