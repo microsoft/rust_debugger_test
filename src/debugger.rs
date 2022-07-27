@@ -58,7 +58,7 @@ impl Display for Debugger {
 fn find_cdb() -> anyhow::Result<OsString> {
     let pf86 = env::var_os("ProgramFiles(x86)")
         .or_else(|| env::var_os("ProgramFiles"))
-        .expect("msg");
+        .expect("must be able to find the default installation directory for cdb.");
     let cdb_arch = if cfg!(target_arch = "x86") {
         "x86"
     } else if cfg!(target_arch = "x86_64") {

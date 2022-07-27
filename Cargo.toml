@@ -1,7 +1,7 @@
 [package]
 name = "debugger_test"
-version = "0.1.1"
-edition = "2021"
+version = "0.1.2"
+edition = "2018"
 description = """
 Provides a proc macro for writing tests that launch a debugger and run commands while verifying the output.
 """
