@@ -1,7 +1,7 @@
 [package]
 name = "debugger_test_parser"
-version = "0.1.1"
-edition = "2021"
+version = "0.1.2"
+edition = "2018"
 description = """
 Provides a library for parsing the output of a debugger and verifying the contents.
 """
