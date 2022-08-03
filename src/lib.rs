@@ -119,9 +119,8 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
             let debugger_path = path.to_string_lossy().to_string();
             let command_line = quote!(
                 std::process::Command::new(#debugger_path)
-                    .stdin(std::process::Stdio::piped())
-                    .stdout(std::process::Stdio::piped())
-                    .stderr(std::process::Stdio::piped())
+                    .stdout(std::process::Stdio::from(debugger_stdout_file))
+                    .stderr(std::process::Stdio::from(debugger_stderr_file))
                     .arg("-pd")
                     .arg("-p")
                     .arg(pid.to_string())
@@ -149,6 +148,8 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
 
             let pid = std::process::id();
             let current_exe_filename = std::env::current_exe()?.file_stem().expect("must have a valid file name").to_string_lossy().to_string();
+
+            // Create a temporary file to store the debugger script to run.
             let debugger_script_filename = format!("{}_{}.debugger_script", current_exe_filename, #test_fn_name);
             let debugger_script_path = std::env::temp_dir().join(debugger_script_filename);
 
@@ -156,54 +157,55 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
             let mut debugger_script = std::fs::File::create(&debugger_script_path)?;
             writeln!(debugger_script, #debugger_script_contents)?;
 
+            // Create a temporary file to store the stdout and stderr from the debugger output.
+            let debugger_stdout_path = debugger_script_path.with_extension("debugger_out");
+            let debugger_stderr_path = debugger_script_path.with_extension("debugger_err");
+
+            let debugger_stdout_file = std::fs::File::create(&debugger_stdout_path)?;
+            let debugger_stderr_file = std::fs::File::create(&debugger_stderr_path)?;
+
             // Start the debugger and run the debugger commands.
             let mut child = #debugger_command_line;
 
             // Wait for the debugger to attach
-            std::thread::sleep(std::time::Duration::from_secs(5));
+            std::thread::sleep(std::time::Duration::from_secs(4));
 
             // Call the test function.
             #fn_ident();
 
             // Wait for the debugger to exit.
+            std::thread::sleep(std::time::Duration::from_secs(4));
+
+            // If debugger has not already quit, force quit the debugger.
             let mut debugger_stdout = String::new();
-            loop {
-                std::thread::sleep(std::time::Duration::from_secs(2));
-
-                match child.try_wait()? {
-                    Some(status) => {
-                        let mut stdout_buf = Vec::new();
-                        child
-                            .stdout
-                            .take()
-                            .expect("stdout must be available from the current process")
-                            .read_to_end(&mut stdout_buf)?;
-                        debugger_stdout = String::from_utf8_lossy(stdout_buf.as_slice()).to_string();
-                        println!("Debugger stdout:\n{}\n", debugger_stdout);
-
-                        // Bail early if the debugger process didn't execute successfully.
-                        if !status.success() {
-                            let mut stderr_buf = Vec::new();
-                            child
-                                .stderr
-                                .take()
-                                .expect("stderr must be available from the current process")
-                                .read_to_end(&mut stderr_buf)?;
-                            let debugger_stderr = String::from_utf8_lossy(stderr_buf.as_slice()).to_string();
-                            panic!("Debugger failed with {}.\n{}\n", status, debugger_stderr);
-                        }
-                        break;
-                    },
-                    None => {
-                        // Ensure the debugger is quitting.
-                        writeln!(child.stdin.as_ref().unwrap(), "{}", "qd\n")?;
+            match child.try_wait()? {
+                Some(status) => {
+                    // Bail early if the debugger process didn't execute successfully.
+                    if !status.success() {
+                        let mut debugger_stderr = String::new();
+                        let mut debugger_stderr_file = std::fs::File::open(&debugger_stderr_path)?;
+                        debugger_stderr_file.read_to_string(&mut debugger_stderr)?;
+                        panic!("Debugger failed with {}.\n{}\n", status, debugger_stderr);
                     }
+
+                    let mut debugger_stdout_file = std::fs::File::open(&debugger_stdout_path)?;
+                    debugger_stdout_file.read_to_string(&mut debugger_stdout)?;
+                    println!("Debugger stdout:\n{}\n", &debugger_stdout);
+
+                    // Verify the expected contents of the debugger output.
+                    let expected_statements = vec![#(#expected_statements),*];
+                    debugger_test_parser::parse(debugger_stdout, expected_statements)?;
+                },
+                None => {
+                    // Force kill the debugger process if it has not exited yet.
+                    println!("killing debugger process.");
+                    child.kill().expect("debugger has been running for too long");
+
+                    let mut debugger_stdout_file = std::fs::File::open(&debugger_stdout_path)?;
+                    debugger_stdout_file.read_to_string(&mut debugger_stdout)?;
+                    println!("Debugger stdout:\n{}\n", &debugger_stdout);
                 }
             }
-
-            // Verify the expected contents of the debugger output.
-            let expected_statements = vec![#(#expected_statements),*];
-            debugger_test_parser::parse(debugger_stdout.clone(), expected_statements)?;
             Ok(())
         }
     ));

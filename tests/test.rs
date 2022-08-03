@@ -9,9 +9,7 @@ fn test_empty_commands() {
 }
 
 #[debugger_test(debugger = "cdb", commands = ".nvlist", expected_statements = "")]
-fn test_no_expectations() {
-    __break();
-}
+fn test_no_expectations() {}
 
 #[debugger_test(
     debugger = "cdb",
