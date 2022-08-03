@@ -33,7 +33,7 @@ impl FromStr for DebuggerType {
     fn from_str(s: &str) -> Result<DebuggerType, Self::Err> {
         let debugger = s.to_lowercase();
         for debugger_type in DebuggerType::iter() {
-            if debugger == format!("{debugger_type}") {
+            if debugger == format!("{}", debugger_type) {
                 return anyhow::Ok(debugger_type);
             }
         }
@@ -112,7 +112,7 @@ pub fn get_debugger(debugger_type: &DebuggerType) -> anyhow::Result<Debugger> {
                     .arg(version_arg)
                     .output()?
             }
-            error_kind => anyhow::bail!("{error_kind}"),
+            error_kind => anyhow::bail!("{}", io::Error::from(error_kind)),
         },
     };
 

@@ -2,13 +2,14 @@ pub fn create_debugger_script(fn_name: &String, debugger_commands: &Vec<&str>) -
     let mut debugger_script = String::new();
 
     // Add an inital breakpoint for the test function.
-    debugger_script.push_str(format!("bm *!*::{}\n", fn_name).as_str());
-
-    // Run the debugger to the start of the test.
-    debugger_script.push_str("g\n");
+    // Also add a breakpoint at the end of the test function which quits the debugger.
+    debugger_script.push_str(format!("bm *!*::{} \"bp /1 @$ra \\\"qd\\\" \"\n", fn_name).as_str());
 
     // Add the user specified breakpoints.
     debugger_script.push_str("bm *!*::__break \"gu\"\n");
+
+    // Run the debugger to the start of the test.
+    debugger_script.push_str("g\n");
     debugger_script.push_str("bl\n");
 
     // Run the debugger to the first user set breakpoint.
@@ -20,7 +21,7 @@ pub fn create_debugger_script(fn_name: &String, debugger_commands: &Vec<&str>) -
         debugger_script.push_str(format!(".echo end_debugger_command_{}\n", i).as_str());
     }
 
-    // Be sure to quit the debugger after running all commands.
+    // Quit and detach the debugger
     debugger_script.push_str("qd\n");
 
     debugger_script
@@ -31,9 +32,9 @@ fn test_debugger_script_empty() {
     let test_name = String::from("test1");
     let debugger_commands = vec![];
     let debugger_script = create_debugger_script(&test_name, &debugger_commands);
-    let expected = r#"bm *!*::test1
-g
+    let expected = r#"bm *!*::test1 "bp /1 @$ra \"qd\" "
 bm *!*::__break "gu"
+g
 bl
 g
 qd
@@ -47,9 +48,9 @@ fn test_debugger_script() {
     let test_name = String::from("test1");
     let debugger_commands = vec!["dv", "g", ".nvlist"];
     let debugger_script = create_debugger_script(&test_name, &debugger_commands);
-    let expected = r#"bm *!*::test1
-g
+    let expected = r#"bm *!*::test1 "bp /1 @$ra \"qd\" "
 bm *!*::__break "gu"
+g
 bl
 g
 .echo start_debugger_command_0

@@ -4,7 +4,7 @@ use debugger_test_parser::parse;
 fn verify_expected_failure(result: anyhow::Result<()>, expected_err_msg: &str) {
     let error = result
         .expect_err(format!("Expected error message missing: `{}`.", expected_err_msg).as_str());
-    assert_eq!(expected_err_msg, format!("{error}"));
+    assert_eq!(expected_err_msg, format!("{}", error));
 }
 
 /// Test parsing empty debugger output.
@@ -60,9 +60,7 @@ fn test_trim_expected_contents() {
     "#,
     );
 
-    let expected_contents = vec![
-        "        var1 = 0"
-    ];
+    let expected_contents = vec!["        var1 = 0"];
     parse(output, expected_contents).expect("able to parse output.");
 }
 
