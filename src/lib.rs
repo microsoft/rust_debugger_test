@@ -141,8 +141,7 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
                             let mut debugger_stdout = String::new();
                             let mut debugger_stdout_file = std::fs::File::open(&debugger_stdout_path)?;
                             debugger_stdout_file.read_to_string(&mut debugger_stdout)?;
-
-                            panic!("Failed to launch CDB: {}\n{}\n{}\n", error.to_string(), debugger_stderr, debugger_stdout);
+                            return Err(std::boxed::Box::from(format!("Failed to launch CDB: {}\n{}\n{}\n", error.to_string(), debugger_stderr, debugger_stdout)));
                         }
                 }
             );
@@ -206,7 +205,7 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
                         let mut debugger_stderr = String::new();
                         let mut debugger_stderr_file = std::fs::File::open(&debugger_stderr_path)?;
                         debugger_stderr_file.read_to_string(&mut debugger_stderr)?;
-                        panic!("Debugger failed with {}.\n{}\n{}\n", status, debugger_stderr, debugger_stdout);
+                        return Err(std::boxed::Box::from(format!("Debugger failed with {}.\n{}\n{}\n", status, debugger_stderr, debugger_stdout)));
                     }
 
                     println!("Debugger stdout:\n{}\n", &debugger_stdout);
