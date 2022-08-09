@@ -1,9 +1,7 @@
 use std::env;
 use std::ffi::OsString;
 use std::fmt::Display;
-use std::io;
 use std::path::PathBuf;
-use std::process::Command;
 use std::str::FromStr;
 use strum::{EnumIter, IntoEnumIterator};
 
@@ -41,21 +39,9 @@ impl FromStr for DebuggerType {
     }
 }
 
-#[derive(Debug)]
-pub enum Debugger {
-    Cdb(PathBuf),
-}
-
-impl Display for Debugger {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        let (debugger_type, debugger_path) = match self {
-            Debugger::Cdb(path) => ("cdb", path),
-        };
-        write!(fmt, "{}: {}", debugger_type, debugger_path.display())
-    }
-}
-
+/// Find the CDB debugger by searching its default installation directory.
 fn find_cdb() -> anyhow::Result<OsString> {
+    // Inspired by https://github.com/rust-lang/rust/blob/1.62.0/src/tools/compiletest/src/main.rs#L821
     let pf86 = env::var_os("ProgramFiles(x86)")
         .or_else(|| env::var_os("ProgramFiles"))
         .expect("must be able to find the default installation directory for cdb.");
@@ -75,7 +61,7 @@ fn find_cdb() -> anyhow::Result<OsString> {
     path.push(pf86);
     path.push(r"Windows Kits\10\Debuggers");
     path.push(cdb_arch);
-    path.push(r"cdb.exe");
+    path.push("cdb.exe");
 
     if !path.exists() {
         anyhow::bail!(
@@ -88,51 +74,26 @@ fn find_cdb() -> anyhow::Result<OsString> {
 }
 
 /// Get the debugger specified by the debugger_type parameter.
-pub fn get_debugger(debugger_type: &DebuggerType) -> anyhow::Result<Debugger> {
-    let mut debugger_executable =
-        OsString::from(format!("{}{}", debugger_type, EXECUTABLE_EXTENSION));
-    let version_arg = match debugger_type {
-        DebuggerType::Cdb => "-version",
+pub fn get_debugger(debugger_type: &DebuggerType) -> PathBuf {
+    let debugger_executable = OsString::from(format!("{}{}", debugger_type, EXECUTABLE_EXTENSION));
+
+    let debugger_env_dir = match debugger_type {
+        DebuggerType::Cdb => env::var_os("CDB_DEBUGGER_DIR"),
     };
 
-    let result = Command::new(&debugger_executable).arg(version_arg).output();
-
-    // First check to see if the debugger is on the path.
-    let output = match result {
-        Ok(output) => output,
-        Err(error) => match error.kind() {
-            io::ErrorKind::NotFound => {
-                log::info!("Unable to find debugger `{:?}` on the Path. Searching default installation directory.", debugger_type);
-
-                debugger_executable = match debugger_type {
-                    DebuggerType::Cdb => find_cdb()?,
-                };
-
-                Command::new(&debugger_executable)
-                    .arg(version_arg)
-                    .output()?
-            }
-            error_kind => anyhow::bail!("{}", io::Error::from(error_kind)),
-        },
+    // First check to see if the debugger path environment variable is set.
+    // If set, use this path for all debugger invocations.
+    // If not set, fallback to the default installation directory.
+    // If the debugger is not found there, fallback to the current path.
+    let debugger_executable_path = if let Some(debugger_env_path) = debugger_env_dir {
+        PathBuf::from(debugger_env_path).join(debugger_executable)
+    } else {
+        match debugger_type {
+            DebuggerType::Cdb => PathBuf::from(find_cdb().unwrap_or(debugger_executable)),
+        }
     };
 
-    if !output.status.success() {
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        anyhow::bail!(
-            "Debugger `{:?}` failed with {:?}\n{}\n{}",
-            &debugger_executable,
-            output.status.code(),
-            stdout,
-            stderr
-        );
-    }
-
-    let debugger = match debugger_type {
-        DebuggerType::Cdb => Debugger::Cdb(PathBuf::from(&debugger_executable)),
-    };
-
-    Ok(debugger)
+    debugger_executable_path
 }
 
 #[test]
@@ -153,19 +114,29 @@ fn test_find_cdb() {
 }
 
 #[test]
-#[cfg_attr(
-    not(target_os = "windows"),
-    ignore = "test only runs on windows platforms."
-)]
 fn test_get_debugger() {
     let debugger_type = DebuggerType::Cdb;
+    let cdb_executable = format!("cdb{}", EXECUTABLE_EXTENSION);
 
-    let result = get_debugger(&debugger_type);
-    assert!(result.is_ok());
+    // Test setting the environment variable to find the debugger
+    let cdb_debugger_dir = "debugger_path/debugger";
+    env::set_var("CDB_DEBUGGER_DIR", cdb_debugger_dir);
+    assert!(env::var_os("CDB_DEBUGGER_DIR").unwrap() == OsString::from("debugger_path/debugger"));
 
-    let debugger = result.unwrap();
-    let re = regex::Regex::new("^cdb: .*cdb.exe$").unwrap();
-    assert!(re.is_match(format!("{}", debugger).as_str()));
+    let mut debugger_path = get_debugger(&debugger_type);
+    let expected_path = PathBuf::from(cdb_debugger_dir).join(&cdb_executable);
+    assert_eq!(expected_path, debugger_path);
+    env::remove_var("CDB_DEBUGGER_DIR");
+
+    debugger_path = get_debugger(&debugger_type);
+    assert_eq!(
+        cdb_executable,
+        debugger_path
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .to_string()
+    );
 }
 
 #[test]

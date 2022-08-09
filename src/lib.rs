@@ -8,7 +8,6 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote, ToTokens};
 use syn::{parse::Parse, Token};
 
-use crate::debugger::{get_debugger, Debugger};
 use crate::debugger_script::create_debugger_script;
 
 struct DebuggerTest {
@@ -96,8 +95,14 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
         .map(|line| line.trim())
         .collect::<Vec<&str>>();
 
-    let debugger_type = DebuggerType::from_str(invoc.debugger.as_str()).expect("valid debugger");
-    let debugger = get_debugger(&debugger_type).expect("must find a valid debugger.");
+    let debugger_type = DebuggerType::from_str(invoc.debugger.as_str()).expect(
+        format!(
+            "debugger `{}` must be a valid debugger option.",
+            invoc.debugger.as_str()
+        )
+        .as_str(),
+    );
+    let debugger_executable_path = debugger::get_debugger(&debugger_type);
 
     let fn_name = func.sig.ident.to_string();
     let fn_ident = format_ident!("{}", fn_name);
@@ -114,9 +119,9 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
         .collect::<Vec<&str>>();
 
     // Create the cli for the given debugger.
-    let (debugger_command_line, cfg_attr) = match debugger {
-        Debugger::Cdb(path) => {
-            let debugger_path = path.to_string_lossy().to_string();
+    let (debugger_command_line, cfg_attr) = match debugger_type {
+        DebuggerType::Cdb => {
+            let debugger_path = debugger_executable_path.to_string_lossy().to_string();
             let command_line = quote!(
                 std::process::Command::new(#debugger_path)
                     .stdout(std::process::Stdio::from(debugger_stdout_file))
