@@ -123,7 +123,7 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
         DebuggerType::Cdb => {
             let debugger_path = debugger_executable_path.to_string_lossy().to_string();
             let command_line = quote!(
-                std::process::Command::new(#debugger_path)
+                match std::process::Command::new(#debugger_path)
                     .stdout(std::process::Stdio::from(debugger_stdout_file))
                     .stderr(std::process::Stdio::from(debugger_stderr_file))
                     .arg("-pd")
@@ -131,7 +131,20 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
                     .arg(pid.to_string())
                     .arg("-cf")
                     .arg(&debugger_script_path)
-                    .spawn()?;
+                    .spawn() {
+                        Ok(child) => child,
+                        Err(error) => {
+                            let mut debugger_stderr = String::new();
+                            let mut debugger_stderr_file = std::fs::File::open(&debugger_stderr_path)?;
+                            debugger_stderr_file.read_to_string(&mut debugger_stderr)?;
+
+                            let mut debugger_stdout = String::new();
+                            let mut debugger_stdout_file = std::fs::File::open(&debugger_stdout_path)?;
+                            debugger_stdout_file.read_to_string(&mut debugger_stdout)?;
+
+                            panic!("Failed to launch CDB: {}\n{}\n{}\n", error.to_string(), debugger_stderr, debugger_stdout);
+                        }
+                }
             );
 
             // cdb is only supported on Windows.
@@ -186,15 +199,16 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
             match child.try_wait()? {
                 Some(status) => {
                     // Bail early if the debugger process didn't execute successfully.
+                    let mut debugger_stdout_file = std::fs::File::open(&debugger_stdout_path)?;
+                    debugger_stdout_file.read_to_string(&mut debugger_stdout)?;
+
                     if !status.success() {
                         let mut debugger_stderr = String::new();
                         let mut debugger_stderr_file = std::fs::File::open(&debugger_stderr_path)?;
                         debugger_stderr_file.read_to_string(&mut debugger_stderr)?;
-                        panic!("Debugger failed with {}.\n{}\n", status, debugger_stderr);
+                        panic!("Debugger failed with {}.\n{}\n{}\n", status, debugger_stderr, debugger_stdout);
                     }
 
-                    let mut debugger_stdout_file = std::fs::File::open(&debugger_stdout_path)?;
-                    debugger_stdout_file.read_to_string(&mut debugger_stdout)?;
                     println!("Debugger stdout:\n{}\n", &debugger_stdout);
 
                     // Verify the expected contents of the debugger output.

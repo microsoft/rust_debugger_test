@@ -11,8 +11,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-2019]
+        os: [windows-latest]
         rust-toolchain: [stable, nightly, 1.45.0]
+        include:
+          - os: ubuntu-latest
+            rust-toolchain: stable
+
     steps:
 
     - name: Checkout repository
@@ -39,7 +43,7 @@ jobs:
     - name: Run debugger_test test suite
       run: cargo test --package debugger_test -- --test-threads=1
     - name: Run debugger_test_parser test suite
-      run: cargo test --package debugger_test_parser --manifest-path debugger_test_parser\Cargo.toml
+      run: cargo test --package debugger_test_parser --manifest-path debugger_test_parser/Cargo.toml
 
   rustfmt:
     name: rustfmt
