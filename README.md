@@ -112,8 +112,8 @@ The proc macro attribute will generate a test function that will do the followin
 Based on the debugger specified via the `#[debugger_test]` attribute, the path used to launch the debugger will
 be one of the following:
 
-1. If the environment variable `debugger_type`_DEBUGGER_DIR is set, the proc macro attribute will combine this directory with the name of the debugger executable
-2. The default installation directory for the given debugger if the debugger exists at that path
+1. If the environment variable, _debugger_type_ _DEBUGGER_DIR is set, i.e. `CDB_DEBUGGER_DIR`, the proc macro attribute will try to launch the debugger from this directory
+2. The default installation directory for the given debugger if it exists at that path
 3. Invoking the executable directly, i.e. `cdb` or `cdb.exe` depending on the OS
 
 ## Contributing

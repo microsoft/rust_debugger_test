@@ -10,9 +10,14 @@ jobs:
     name: test
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [windows-2019]
+        os: [windows-latest]
         rust-toolchain: [stable, nightly, 1.45.0]
+        include:
+          - os: ubuntu-latest
+            rust-toolchain: stable
+
     steps:
 
     - name: Checkout repository
@@ -37,13 +42,13 @@ jobs:
 # Each test attaches a debugger to the test process so there
 # can not be another debugger attached to the current test process.
     - name: Run debugger_test test suite
-      run: cargo test --package debugger_test -- --test-threads=1
+      run: cargo test --package debugger_test -- --test-threads=1 --nocapture
     - name: Run debugger_test_parser test suite
-      run: cargo test --package debugger_test_parser --manifest-path debugger_test_parser\Cargo.toml
+      run: cargo test --package debugger_test_parser --manifest-path debugger_test_parser/Cargo.toml
 
   rustfmt:
     name: rustfmt
-    runs-on: windows-2019
+    runs-on: windows-latest
     steps:
     - name: Checkout repository
       uses: actions/checkout@v1

@@ -40,11 +40,10 @@ impl FromStr for DebuggerType {
 }
 
 /// Find the CDB debugger by searching its default installation directory.
-fn find_cdb() -> anyhow::Result<OsString> {
+fn find_cdb() -> Option<OsString> {
     // Inspired by https://github.com/rust-lang/rust/blob/1.62.0/src/tools/compiletest/src/main.rs#L821
-    let pf86 = env::var_os("ProgramFiles(x86)")
-        .or_else(|| env::var_os("ProgramFiles"))
-        .expect("must be able to find the default installation directory for cdb.");
+    let pf86 = env::var_os("ProgramFiles(x86)").or_else(|| env::var_os("ProgramFiles"))?;
+
     let cdb_arch = if cfg!(target_arch = "x86") {
         "x86"
     } else if cfg!(target_arch = "x86_64") {
@@ -54,7 +53,7 @@ fn find_cdb() -> anyhow::Result<OsString> {
     } else if cfg!(target_arch = "arm") {
         "arm"
     } else {
-        anyhow::bail!("No compatible cdb.exe in the Windows 10 SDK");
+        return None; // No compatible cdb.exe in the Windows 10 SDK
     };
 
     let mut path = PathBuf::new();
@@ -64,13 +63,10 @@ fn find_cdb() -> anyhow::Result<OsString> {
     path.push("cdb.exe");
 
     if !path.exists() {
-        anyhow::bail!(
-            "Unable to find cdb.exe at `{:?}`. Please ensure the debugger is installed.",
-            path.display()
-        );
+        return None;
     }
 
-    Ok(path.into_os_string())
+    Some(path.into_os_string())
 }
 
 /// Get the debugger specified by the debugger_type parameter.
@@ -81,8 +77,8 @@ pub fn get_debugger(debugger_type: &DebuggerType) -> PathBuf {
         DebuggerType::Cdb => env::var_os("CDB_DEBUGGER_DIR"),
     };
 
-    // First check to see if the debugger path environment variable is set.
-    // If set, use this path for all debugger invocations.
+    // First check to see if the %debugger_type%_DEBUGGER_DIR environment variable is set.
+    // If set, use this directory for all debugger invocations.
     // If not set, fallback to the default installation directory.
     // If the debugger is not found there, fallback to the current path.
     let debugger_executable_path = if let Some(debugger_env_path) = debugger_env_dir {
@@ -103,7 +99,7 @@ pub fn get_debugger(debugger_type: &DebuggerType) -> PathBuf {
 )]
 fn test_find_cdb() {
     let result = find_cdb();
-    assert!(result.is_ok());
+    assert!(result.is_some());
 
     let cdb = result.unwrap();
     let cdb_path = std::path::PathBuf::from(cdb.to_string_lossy().to_string());
