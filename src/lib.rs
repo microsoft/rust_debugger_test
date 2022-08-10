@@ -8,7 +8,6 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote, ToTokens};
 use syn::{parse::Parse, Token};
 
-use crate::debugger::{get_debugger, Debugger};
 use crate::debugger_script::create_debugger_script;
 
 struct DebuggerTest {
@@ -96,8 +95,14 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
         .map(|line| line.trim())
         .collect::<Vec<&str>>();
 
-    let debugger_type = DebuggerType::from_str(invoc.debugger.as_str()).expect("valid debugger");
-    let debugger = get_debugger(&debugger_type).expect("must find a valid debugger.");
+    let debugger_type = DebuggerType::from_str(invoc.debugger.as_str()).expect(
+        format!(
+            "debugger `{}` must be a valid debugger option.",
+            invoc.debugger.as_str()
+        )
+        .as_str(),
+    );
+    let debugger_executable_path = debugger::get_debugger(&debugger_type);
 
     let fn_name = func.sig.ident.to_string();
     let fn_ident = format_ident!("{}", fn_name);
@@ -114,11 +119,11 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
         .collect::<Vec<&str>>();
 
     // Create the cli for the given debugger.
-    let (debugger_command_line, cfg_attr) = match debugger {
-        Debugger::Cdb(path) => {
-            let debugger_path = path.to_string_lossy().to_string();
+    let (debugger_command_line, cfg_attr) = match debugger_type {
+        DebuggerType::Cdb => {
+            let debugger_path = debugger_executable_path.to_string_lossy().to_string();
             let command_line = quote!(
-                std::process::Command::new(#debugger_path)
+                match std::process::Command::new(#debugger_path)
                     .stdout(std::process::Stdio::from(debugger_stdout_file))
                     .stderr(std::process::Stdio::from(debugger_stderr_file))
                     .arg("-pd")
@@ -126,7 +131,12 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
                     .arg(pid.to_string())
                     .arg("-cf")
                     .arg(&debugger_script_path)
-                    .spawn()?;
+                    .spawn() {
+                        Ok(child) => child,
+                        Err(error) => {
+                            return Err(std::boxed::Box::from(format!("Failed to launch CDB: {}\n", error.to_string())));
+                        }
+                }
             );
 
             // cdb is only supported on Windows.
@@ -167,29 +177,44 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
             // Start the debugger and run the debugger commands.
             let mut child = #debugger_command_line;
 
-            // Wait for the debugger to attach
-            std::thread::sleep(std::time::Duration::from_secs(4));
+            // Wait for the debugger to launch
+            // On Windows, use the IsDebuggerPresent API to check if a debugger is present
+            // for the current process. https://docs.microsoft.com/en-us/windows/win32/api/debugapi/nf-debugapi-isdebuggerpresent
+            #[cfg(windows)]
+            extern "stdcall" {
+                fn IsDebuggerPresent() -> i32;
+            };
+            #[cfg(windows)]
+            unsafe {
+                while IsDebuggerPresent() == 0 {
+                    std::thread::sleep(std::time::Duration::from_secs(1));
+                }
+            }
+
+            // Wait 3 seconds to ensure the debugger is in control of the process.
+            std::thread::sleep(std::time::Duration::from_secs(3));
 
             // Call the test function.
             #fn_ident();
 
             // Wait for the debugger to exit.
-            std::thread::sleep(std::time::Duration::from_secs(4));
+            std::thread::sleep(std::time::Duration::from_secs(3));
 
             // If debugger has not already quit, force quit the debugger.
             let mut debugger_stdout = String::new();
             match child.try_wait()? {
                 Some(status) => {
                     // Bail early if the debugger process didn't execute successfully.
+                    let mut debugger_stdout_file = std::fs::File::open(&debugger_stdout_path)?;
+                    debugger_stdout_file.read_to_string(&mut debugger_stdout)?;
+
                     if !status.success() {
                         let mut debugger_stderr = String::new();
                         let mut debugger_stderr_file = std::fs::File::open(&debugger_stderr_path)?;
                         debugger_stderr_file.read_to_string(&mut debugger_stderr)?;
-                        panic!("Debugger failed with {}.\n{}\n", status, debugger_stderr);
+                        return Err(std::boxed::Box::from(format!("Debugger failed with {}.\n{}\n{}\n", status, debugger_stderr, debugger_stdout)));
                     }
 
-                    let mut debugger_stdout_file = std::fs::File::open(&debugger_stdout_path)?;
-                    debugger_stdout_file.read_to_string(&mut debugger_stdout)?;
                     println!("Debugger stdout:\n{}\n", &debugger_stdout);
 
                     // Verify the expected contents of the debugger output.
@@ -206,6 +231,17 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
                     println!("Debugger stdout:\n{}\n", &debugger_stdout);
                 }
             }
+
+            #[cfg(windows)]
+            unsafe {
+                while IsDebuggerPresent() == 1 {
+                    std::thread::sleep(std::time::Duration::from_secs(1));
+                }
+            }
+
+            #[cfg(not(windows))]
+            std::thread::sleep(std::time::Duration::from_secs(3));
+
             Ok(())
         }
     ));
