@@ -177,7 +177,7 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
             // Start the debugger and run the debugger commands.
             let mut child = #debugger_command_line;
 
-            // Wait for the debugger to attach
+            // Wait for the debugger to launch
             // On Windows, use the IsDebuggerPresent API to check if a debugger is present
             // for the current process. https://docs.microsoft.com/en-us/windows/win32/api/debugapi/nf-debugapi-isdebuggerpresent
             #[cfg(windows)]
@@ -191,8 +191,7 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             }
 
-            // If not on Windows, wait 5 seconds for the debugger to attach.
-            #[cfg(not(windows))]
+            // Wait 3 seconds to ensure the debugger is in control of the process.
             std::thread::sleep(std::time::Duration::from_secs(3));
 
             // Call the test function.
