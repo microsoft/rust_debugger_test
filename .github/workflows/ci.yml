@@ -14,6 +14,9 @@ jobs:
       matrix:
         os: [windows-latest]
         rust-toolchain: [stable, nightly, 1.45.0]
+        include:
+          - os: ubuntu-latest
+            rust-toolchain: stable
 
     steps:
 
