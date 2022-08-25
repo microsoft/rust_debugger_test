@@ -3,14 +3,13 @@ use std::ffi::OsString;
 use std::fmt::Display;
 use std::path::PathBuf;
 use std::str::FromStr;
-use strum::{EnumIter, IntoEnumIterator};
 
 #[cfg(windows)]
 pub static EXECUTABLE_EXTENSION: &str = ".exe";
 #[cfg(not(windows))]
 pub static EXECUTABLE_EXTENSION: &str = "";
 
-#[derive(Debug, EnumIter)]
+#[derive(Debug)]
 pub enum DebuggerType {
     Cdb,
 }
@@ -30,12 +29,10 @@ impl FromStr for DebuggerType {
     /// Attempts to parse a string into a DebuggerType
     fn from_str(s: &str) -> Result<DebuggerType, Self::Err> {
         let debugger = s.to_lowercase();
-        for debugger_type in DebuggerType::iter() {
-            if debugger == format!("{}", debugger_type) {
-                return anyhow::Ok(debugger_type);
-            }
+        match debugger.as_str() {
+            "cdb" => Ok(DebuggerType::Cdb),
+            _ => anyhow::bail!("Invalid debugger type option: `{}`.", s),
         }
-        anyhow::bail!("Invalid debugger type option: `{}`.", s)
     }
 }
 
