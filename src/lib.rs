@@ -216,10 +216,6 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
                     }
 
                     println!("Debugger stdout:\n{}\n", &debugger_stdout);
-
-                    // Verify the expected contents of the debugger output.
-                    let expected_statements = vec![#(#expected_statements),*];
-                    debugger_test_parser::parse(debugger_stdout, expected_statements)?;
                 },
                 None => {
                     // Force kill the debugger process if it has not exited yet.
@@ -231,6 +227,10 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
                     println!("Debugger stdout:\n{}\n", &debugger_stdout);
                 }
             }
+
+            // Verify the expected contents of the debugger output.
+            let expected_statements = vec![#(#expected_statements),*];
+            debugger_test_parser::parse(debugger_stdout, expected_statements)?;
 
             #[cfg(windows)]
             unsafe {
