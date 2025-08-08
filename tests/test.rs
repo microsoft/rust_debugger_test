@@ -37,13 +37,13 @@ fn test_commands_with_expectations() {
     __break();
 
     a += 5;
-    assert_eq!(a, 5);
     __break();
+    assert_eq!(a, 5);
 
     let mut b = 25;
     __break();
 
     b -= 15;
-    assert_eq!(b, 10);
     __break();
+    assert_eq!(b, 10);
 }

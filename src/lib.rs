@@ -181,7 +181,7 @@ pub fn debugger_test(attr: TokenStream, item: TokenStream) -> TokenStream {
             // On Windows, use the IsDebuggerPresent API to check if a debugger is present
             // for the current process. https://docs.microsoft.com/en-us/windows/win32/api/debugapi/nf-debugapi-isdebuggerpresent
             #[cfg(windows)]
-            extern "stdcall" {
+            extern "system" {
                 fn IsDebuggerPresent() -> i32;
             };
             #[cfg(windows)]
