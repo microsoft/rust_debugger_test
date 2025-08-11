@@ -1,6 +1,6 @@
 [package]
 name = "debugger_test"
-version = "0.1.5"
+version = "0.2.0"
 edition = "2018"
 description = """
 Provides a proc macro for writing tests that launch a debugger and run commands while verifying the output.
@@ -12,6 +12,7 @@ repository = "https://github.com/microsoft/rust_debugger_test"
 license = "MIT OR Apache-2.0"
 keywords = ["debugger", "cdb", "natvis", "debugger_visualizer"]
 exclude = ["/.github/*"]
+rust-version = "1.65.0"
 
 [lib]
 proc-macro = true
